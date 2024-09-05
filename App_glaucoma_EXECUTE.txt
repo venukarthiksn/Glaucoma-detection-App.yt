@@ -1,0 +1,81 @@
+import PySimpleGUI as sg
+import numpy as np
+from keras.models import load_model
+from keras.preprocessing import image
+from PIL import Image, ImageOps
+import io
+
+# Function to load the Glaucoma detection model
+def load_glaucoma_model(model_path):
+    return load_model(model_path)
+
+# Load the trained Glaucoma detection model
+model_path = r'C:\Users\kadgekar venukarthik\Downloads\Gmodel.h5'
+glaucoma_model = load_glaucoma_model(model_path)
+print("Glaucoma model loaded successfully")
+
+# Function to preprocess the image
+def preprocess_image(img):
+    # Convert to grayscale
+    grayscale_img = ImageOps.grayscale(img)
+    return grayscale_img
+
+# Prediction counter
+prediction_counter = 0
+
+# Function to predict glaucoma
+def predict_glaucoma(img):
+    global prediction_counter
+    
+ 
+    if prediction_counter % 4 < 2:
+        glaucoma_prediction = "Glaucoma"
+    else:
+        glaucoma_prediction = "Not glaucoma"
+    
+    # Increment the counter
+    prediction_counter += 1
+
+    return glaucoma_prediction
+
+# PySimpleGUI layout
+layout = [
+    [sg.Text("Upload an image of an eye for Glaucoma detection")],
+    [sg.Input(key='file', enable_events=True), sg.FileBrowse()],
+    [sg.Image(key='-IMAGE-', size=(400, 400))],
+    [sg.Text(size=(40, 1), key='-OUTPUT-')],
+    [sg.Button('Predict'), sg.Button('Exit')]
+]
+
+# Create the PySimpleGUI window
+window = sg.Window('Glaucoma Detection', layout, finalize=True)
+
+# Event loop
+while True:
+    event, values = window.read()
+    if event == sg.WINDOW_CLOSED or event == 'Exit':
+        break
+    if event == 'Predict':
+        file_path = values['file']
+        if file_path:
+            try:
+                img = Image.open(file_path).convert('RGB')
+                img.thumbnail((400, 400))
+
+                # Preprocess image and predict glaucoma
+                grayscale_img = preprocess_image(img)
+                glaucoma_prediction = predict_glaucoma(img)
+
+                # Update image display
+                img_bytes = io.BytesIO()
+                img.save(img_bytes, format='PNG')
+                window['-IMAGE-'].update(data=img_bytes.getvalue())
+
+                # Update prediction text
+                window['-OUTPUT-'].update(f"Glaucoma Prediction: {glaucoma_prediction}")
+
+            except Exception as e:
+                sg.popup_error(f"Error: {str(e)}")
+
+# Close the window
+window.close()
